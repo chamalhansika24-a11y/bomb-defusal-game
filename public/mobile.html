@@ -22,31 +22,28 @@
     </style>
 </head>
 <body>
-    <!-- URL එකේ Team එක නැත්නම් විතරක් පෙනෙන Screen එක -->
     <div class="container" id="loginScreen">
         <h2>📟 SELECT YOUR TEAM</h2>
         <select id="teamSelect">
-            <option value="Team 1">Kubi.exe</option>
-            <option value="Team 2">StackOverflow</option>
-            <option value="Team 3">Everywhere 2.0</option>
-            <option value="Team 4">BYTE KNIGHTS</option>
-            <option value="Team 5">Pentabyte</option>
-            <option value="Team 6">NoZero</option>
-            <option value="Team 7">The debuggers</option>
-            <option value="Team 8">CacheMe</option>
-            <option value="Team 9">Nexus</option>
-            <option value="Team 10">FrostByte</option>
+            <option value="Kubi.exe">Kubi.exe</option>
+            <option value="StackOverflow">StackOverflow</option>
+            <option value="Everywhere 2.0">Everywhere 2.0</option>
+            <option value="BYTE KNIGHTS">BYTE KNIGHTS</option>
+            <option value="Pentabyte">Pentabyte</option>
+            <option value="NoZero">NoZero</option>
+            <option value="The debuggers">The debuggers</option>
+            <option value="CacheMe">CacheMe</option>
+            <option value="Nexus">Nexus</option>
+            <option value="FrostByte">FrostByte</option>
         </select>
         <button onclick="joinTeam()">ENTER TERMINAL</button>
     </div>
 
-    <!-- Waiting Screen -->
     <div class="container" id="waitingScreen">
         <h2 style="color: #f1c40f;">⏳ WAITING FOR ADMIN...</h2>
         <p>තරගය ආරම්භ කරනතුරු රැඳී සිටින්න.</p>
     </div>
 
-    <!-- Main Dashboard -->
     <div class="container" id="dashboard">
         <h2 id="teamNameDisplay">TEAM TERMINAL</h2>
         <h1 id="mobileTimer" style="color: #f1c40f; font-size: 40px;">20:00</h1>
@@ -100,21 +97,21 @@
     <script>
         const socket = io();
         
-        // 1. URL එකෙන් team parameter එක ගන්නවා (e.g. ?team=Team1 or ?team=1)
+        const teamList = [
+            "Kubi.exe", "StackOverflow", "Everywhere 2.0", "BYTE KNIGHTS",
+            "Pentabyte", "NoZero", "The debuggers", "CacheMe", "Nexus", "FrostByte"
+        ];
+
         const urlParams = new URLSearchParams(window.location.search);
         let paramTeam = urlParams.get('team');
-        
+        let matchedTeam = "";
+
         if (paramTeam) {
-            // "1" හෝ "Team1" ලෙස ආවොත් "Team 1" ලෙස සකසයි
-            paramTeam = paramTeam.trim();
-            if (!paramTeam.toLowerCase().startsWith('team')) {
-                paramTeam = 'Team ' + paramTeam;
-            } else if (!paramTeam.includes(' ')) {
-                paramTeam = paramTeam.replace(/team/i, 'Team ');
-            }
+            const found = teamList.find(t => t.toLowerCase() === paramTeam.trim().toLowerCase());
+            if (found) matchedTeam = found;
         }
 
-        let myTeam = paramTeam || localStorage.getItem('myTeam') || "";
+        let myTeam = matchedTeam || localStorage.getItem('myTeam') || "";
         let currentGameState = 'waiting';
 
         window.onload = () => {
@@ -148,7 +145,8 @@
         socket.on('updateState', (teams) => {
             if(!myTeam) return;
             const myTeamData = teams[myTeam];
-            
+            if(!myTeamData) return;
+
             ['bomb1', 'bomb2', 'bomb3'].forEach(bomb => {
                 const bombData = myTeamData[bomb];
                 const statusText = document.getElementById('status-' + bomb);

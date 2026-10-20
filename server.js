@@ -14,20 +14,35 @@ const correctAnswers = {
     bomb3: "1-2-3-4-5-6-7"
 };
 
+// ඔයා ලබා දුන් කණ්ඩායම් නාම 10
+const teamList = [
+    "Kubi.exe",
+    "StackOverflow",
+    "Everywhere 2.0",
+    "BYTE KNIGHTS",
+    "Pentabyte",
+    "NoZero",
+    "The debuggers",
+    "CacheMe",
+    "Nexus",
+    "FrostByte"
+];
+
 let teams = {};
 let gameState = 'waiting';
 let timeLeft = 1200;
 let timerInterval = null;
 
 function initTeams() {
-    for(let i=1; i<=10; i++) {
-        teams[`Team ${i}`] = {
-            online: false, // Online Status indicator එක
+    teams = {};
+    teamList.forEach(teamName => {
+        teams[teamName] = {
+            online: false,
             bomb1: { status: 'active', attempts: 0 },
             bomb2: { status: 'active', attempts: 0 },
             bomb3: { status: 'active', attempts: 0 }
         };
-    }
+    });
 }
 initTeams();
 
@@ -35,7 +50,6 @@ io.on('connection', (socket) => {
     socket.emit('updateState', teams);
     socket.emit('gameState', { state: gameState, time: timeLeft });
 
-    // Mobile App එකෙන් Team එක register කරද්දී
     socket.on('registerTeam', (teamName) => {
         socket.teamName = teamName;
         if(teams[teamName]) {
@@ -44,7 +58,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Mobile App එක ක්ලෝස් කරද්දී හෝ Internet විසන්ධි වෙද්දී
     socket.on('disconnect', () => {
         if (socket.teamName && teams[socket.teamName]) {
             teams[socket.teamName].online = false;
@@ -92,9 +105,9 @@ io.on('connection', (socket) => {
         if (gameState !== 'playing') return;
 
         const { team, bomb, code } = data;
-        let currentBomb = teams[team][bomb];
+        let currentBomb = teams[team]?.[bomb];
 
-        if(currentBomb.status !== 'active') return;
+        if(!currentBomb || currentBomb.status !== 'active') return;
 
         if(code === correctAnswers[bomb]) {
             currentBomb.status = 'defused';
