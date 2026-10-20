@@ -100,8 +100,18 @@
 
     <script>
         const socket = io();
-        let myTeam = "";
+        
+        // 1. ෆෝන් එකේ සේව් වෙලා තියෙන ටීම් එක ගන්නවා (නැත්නම් හිස් කරනවා)
+        let myTeam = localStorage.getItem('myTeam') || ""; 
         let currentGameState = 'waiting';
+
+        // 2. පිටුව ලෝඩ් වෙද්දිම කණ්ඩායමක් කලින් තෝරලා නම් කෙලින්ම ඇතුලට දානවා
+        window.onload = () => {
+            if (myTeam !== "") {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('teamNameDisplay').innerText = myTeam + " TERMINAL";
+            }
+        };
 
         socket.on('gameState', (data) => {
             currentGameState = data.state;
@@ -148,6 +158,10 @@
 
         function joinTeam() {
             myTeam = document.getElementById('teamSelect').value;
+            
+            // 3. අලුතින් තෝරන ටීම් එක ෆෝන් එකේ සේව් කරනවා
+            localStorage.setItem('myTeam', myTeam); 
+            
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('teamNameDisplay').innerText = myTeam + " TERMINAL";
             
@@ -174,7 +188,6 @@
                 values.push(input.value.trim());
             }
 
-            // වෙන වෙනම ගහපු numbers ටික 4-9-12 විදිහට එකතු කරලා සර්වර් එකට යවනවා
             const code = values.join('-');
             socket.emit('submitCode', { team: myTeam, bomb: bombId, code });
             inputs.forEach(input => input.value = '');
