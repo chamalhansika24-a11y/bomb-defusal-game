@@ -17,11 +17,14 @@
         .boxes-container { display: flex; justify-content: center; gap: 8px; margin: 15px 0; flex-wrap: wrap; }
         .code-box { width: 45px; height: 50px; text-align: center; font-size: 20px; font-weight: bold; border-radius: 5px; }
 
+        .change-team-btn { background: #333; color: #aaa; border: 1px solid #555; font-size: 14px; padding: 8px; margin-top: 15px; width: auto; display: inline-block; }
+
         #dashboard { display: none; }
         #waitingScreen { display: none; margin-top: 50px; font-size: 20px; }
     </style>
 </head>
 <body>
+    <!-- 1 වෙනි තිරය: Team Selection -->
     <div class="container" id="loginScreen">
         <h2>📟 SELECT YOUR TEAM</h2>
         <select id="teamSelect">
@@ -39,11 +42,14 @@
         <button onclick="joinTeam()">ENTER TERMINAL</button>
     </div>
 
+    <!-- 2 වෙනි තිරය: Waiting Screen -->
     <div class="container" id="waitingScreen">
         <h2 style="color: #f1c40f;">⏳ WAITING FOR ADMIN...</h2>
         <p>තරගය ආරම්භ කරනතුරු රැඳී සිටින්න.</p>
+        <button class="change-team-btn" onclick="changeTeam()">🔄 Change Selected Team</button>
     </div>
 
+    <!-- 3 වෙනි තිරය: Main Dashboard -->
     <div class="container" id="dashboard">
         <h2 id="teamNameDisplay">TEAM TERMINAL</h2>
         <h1 id="mobileTimer" style="color: #f1c40f; font-size: 40px;">20:00</h1>
@@ -92,6 +98,8 @@
                 <button onclick="defuse('bomb3')">DEFUSE BOMB 3</button>
             </div>
         </div>
+
+        <button class="change-team-btn" onclick="changeTeam()">🔄 Change Selected Team</button>
     </div>
 
     <script>
@@ -103,7 +111,7 @@
             if (myTeam !== "") {
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('teamNameDisplay').innerText = myTeam + " TERMINAL";
-                socket.emit('registerTeam', myTeam); // Reconnect වුණාම සර්වර් එකට කියනවා
+                socket.emit('registerTeam', myTeam);
             }
         };
 
@@ -157,13 +165,22 @@
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('teamNameDisplay').innerText = myTeam + " TERMINAL";
             
-            socket.emit('registerTeam', myTeam); // Server එකට කියනවා මෙයා Online කියලා
+            socket.emit('registerTeam', myTeam);
             
             if (currentGameState === 'waiting') {
                 document.getElementById('waitingScreen').style.display = 'block';
             } else {
                 document.getElementById('dashboard').style.display = 'block';
             }
+        }
+
+        // Team එක මාරු කිරීමේ Function එක
+        function changeTeam() {
+            localStorage.removeItem('myTeam');
+            myTeam = "";
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('waitingScreen').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'block';
         }
 
         function defuse(bombId) {
