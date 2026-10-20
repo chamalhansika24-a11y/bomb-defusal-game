@@ -6,9 +6,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static('public')); // public ෆෝල්ඩරය පෙන්වීමට
+app.use(express.static('public'));
 
-// නිවැරදි කේත (Passwords)
 const correctAnswers = {
     bomb1: "4-9-12",
     bomb2: "5-10-15-20-25",
@@ -16,14 +15,14 @@ const correctAnswers = {
 };
 
 let teams = {};
-let gameState = 'waiting'; // 'waiting', 'playing', 'finished'
-let timeLeft = 1200; // විනාඩි 20 (තත්පර 1200)
+let gameState = 'waiting';
+let timeLeft = 1200;
 let timerInterval = null;
 
-// කණ්ඩායම් 10 මුල් තත්ත්වයට සැකසීම
 function initTeams() {
     for(let i=1; i<=10; i++) {
         teams[`Team ${i}`] = {
+            online: false, // Online Status indicator එක
             bomb1: { status: 'active', attempts: 0 },
             bomb2: { status: 'active', attempts: 0 },
             bomb3: { status: 'active', attempts: 0 }
@@ -33,11 +32,26 @@ function initTeams() {
 initTeams();
 
 io.on('connection', (socket) => {
-    // කවුරුහරි කනෙක්ට් වුණාම දැනට තියෙන තත්ත්වය යවනවා
     socket.emit('updateState', teams);
     socket.emit('gameState', { state: gameState, time: timeLeft });
 
-    // ගේම් එක පටන් ගැනීම
+    // Mobile App එකෙන් Team එක register කරද්දී
+    socket.on('registerTeam', (teamName) => {
+        socket.teamName = teamName;
+        if(teams[teamName]) {
+            teams[teamName].online = true;
+            io.emit('updateState', teams);
+        }
+    });
+
+    // Mobile App එක ක්ලෝස් කරද්දී හෝ Internet විසන්ධි වෙද්දී
+    socket.on('disconnect', () => {
+        if (socket.teamName && teams[socket.teamName]) {
+            teams[socket.teamName].online = false;
+            io.emit('updateState', teams);
+        }
+    });
+
     socket.on('startGame', () => {
         if (gameState === 'waiting') {
             gameState = 'playing';
@@ -48,11 +62,9 @@ io.on('connection', (socket) => {
                 timeLeft--;
                 io.emit('timerUpdate', timeLeft);
                 
-                // වෙලාව ඉවර වුණාම
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
                     gameState = 'finished';
-                    // ඉතුරු active බෝම්බ ඔටෝ පුපුරවනවා
                     for(let teamName in teams) {
                         ['bomb1', 'bomb2', 'bomb3'].forEach(b => {
                             if(teams[teamName][b].status === 'active') {
@@ -67,7 +79,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ගේම් එක රීසෙට් කිරීම
     socket.on('resetGame', () => {
         clearInterval(timerInterval);
         gameState = 'waiting';
@@ -77,9 +88,8 @@ io.on('connection', (socket) => {
         io.emit('updateState', teams);
     });
 
-    // ළමයෙක් Mobile එකෙන් කේතය Submit කළාම
     socket.on('submitCode', (data) => {
-        if (gameState !== 'playing') return; // ගේම් එක යන වෙලාවට විතරයි කේත බාරගන්නේ
+        if (gameState !== 'playing') return;
 
         const { team, bomb, code } = data;
         let currentBomb = teams[team][bomb];
@@ -87,18 +97,16 @@ io.on('connection', (socket) => {
         if(currentBomb.status !== 'active') return;
 
         if(code === correctAnswers[bomb]) {
-            currentBomb.status = 'defused'; // කේතය හරි නම්
+            currentBomb.status = 'defused';
         } else {
             currentBomb.attempts += 1;
             if(currentBomb.attempts >= 3) {
-                currentBomb.status = 'exploded'; // 3 පාරක් වැරදුනොත්
+                currentBomb.status = 'exploded';
             }
         }
-        
-        // අලුත් තත්ත්වය තත්පරෙන් Main Dashboard එකට යවනවා!
         io.emit('updateState', teams);
     });
 });
 
-const PORT = 3000;
-server.listen(PORT, () => console.log(`Server is running on http://localhost:3000`));
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

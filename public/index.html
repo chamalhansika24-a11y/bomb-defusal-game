@@ -6,12 +6,16 @@
     <style>
         body { background: #111; color: white; font-family: Arial, sans-serif; text-align: center; }
         .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; }
-        .team-card { background: #222; padding: 15px; border-radius: 10px; width: 250px; border: 1px solid #444; }
+        .team-card { background: #222; padding: 15px; border-radius: 10px; width: 250px; border: 1px solid #444; position: relative; }
         .bomb { display: block; padding: 10px; margin: 5px 0; border-radius: 5px; font-weight: bold; font-size: 18px; }
         .active { background: #f1c40f; color: black; }
         .defused { background: #2ecc71; color: black; }
-        .exploded { background: #e74c3c; color: white; animation: shake 0.5s; }
+        .exploded { background: #e74c3c; color: white; }
         
+        .status-badge { font-size: 12px; padding: 3px 8px; border-radius: 12px; font-weight: bold; margin-left: 5px; display: inline-block; }
+        .online { background: #2ecc71; color: black; }
+        .offline { background: #555; color: #ccc; }
+
         #admin-controls { margin: 20px; }
         button { font-size: 20px; padding: 15px 30px; font-weight: bold; cursor: pointer; border: none; border-radius: 10px; margin: 10px; }
         #startBtn { background: #3498db; color: white; }
@@ -59,7 +63,13 @@
             container.innerHTML = '';
             for (let teamName in teams) {
                 let team = teams[teamName];
-                let html = `<div class="team-card"><h3>${teamName}</h3>`;
+                let isOnline = team.online;
+                let badgeClass = isOnline ? 'online' : 'offline';
+                let badgeText = isOnline ? '🟢 Online' : '⚪ Offline';
+
+                let html = `<div class="team-card">
+                    <h3>${teamName} <span class="status-badge ${badgeClass}">${badgeText}</span></h3>`;
+                
                 ['bomb1', 'bomb2', 'bomb3'].forEach((b, index) => {
                     let status = team[b].status;
                     let text = status === 'active' ? `BOMB ${index+1} (Active)` : status.toUpperCase();
