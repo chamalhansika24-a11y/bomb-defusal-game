@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Admin Dashboard</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { background: #111; color: white; font-family: Arial, sans-serif; text-align: center; }
+        .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; }
+        .team-card { background: #222; padding: 15px; border-radius: 10px; width: 250px; border: 1px solid #444; }
+        .bomb { display: block; padding: 10px; margin: 5px 0; border-radius: 5px; font-weight: bold; font-size: 18px; }
+        .active { background: #f1c40f; color: black; }
+        .defused { background: #2ecc71; color: black; }
+        .exploded { background: #e74c3c; color: white; animation: shake 0.5s; }
+        
+        #admin-controls { margin: 20px; }
+        button { font-size: 20px; padding: 15px 30px; font-weight: bold; cursor: pointer; border: none; border-radius: 10px; margin: 10px; }
+        #startBtn { background: #3498db; color: white; }
+        #resetBtn { background: #e74c3c; color: white; }
+        
+        #timer { font-size: 80px; font-weight: bold; color: #f1c40f; margin: 10px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>💣 HACKATHON LIVE DASHBOARD 💣</h1>
+    
+    <div id="admin-controls">
+        <button id="startBtn" onclick="socket.emit('startGame')">▶ START GAME</button>
+        <button id="resetBtn" onclick="socket.emit('resetGame')">🔄 RESET GAME</button>
+    </div>
+
+    <div id="timer">20:00</div>
+    <div class="grid" id="teamsContainer"></div>
+
+    <script>
+        const socket = io();
+        
+        function formatTime(seconds) {
+            let m = Math.floor(seconds / 60);
+            let s = seconds % 60;
+            return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+        }
+
+        socket.on('gameState', (data) => {
+            document.getElementById('timer').innerText = formatTime(data.time);
+            if (data.state === 'finished') {
+                document.getElementById('timer').innerText = "00:00 - TIME UP!";
+                document.getElementById('timer').style.color = "red";
+            } else {
+                document.getElementById('timer').style.color = "#f1c40f";
+            }
+        });
+
+        socket.on('timerUpdate', (time) => {
+            document.getElementById('timer').innerText = formatTime(time);
+        });
+
+        socket.on('updateState', (teams) => {
+            const container = document.getElementById('teamsContainer');
+            container.innerHTML = '';
+            for (let teamName in teams) {
+                let team = teams[teamName];
+                let html = `<div class="team-card"><h3>${teamName}</h3>`;
+                ['bomb1', 'bomb2', 'bomb3'].forEach((b, index) => {
+                    let status = team[b].status;
+                    let text = status === 'active' ? `BOMB ${index+1} (Active)` : status.toUpperCase();
+                    html += `<div class="bomb ${status}">${text}</div>`;
+                });
+                html += `</div>`;
+                container.innerHTML += html;
+            }
+        });
+    </script>
+</body>
+</html>

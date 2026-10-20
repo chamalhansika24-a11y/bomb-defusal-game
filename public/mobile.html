@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mobile Defuse Terminal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { background: #111; color: #0f0; font-family: monospace; text-align: center; padding: 15px; margin: 0; }
+        .container { max-width: 100%; margin: auto; }
+        select, input, button { font-size: 18px; background: #000; color: #0f0; border: 2px solid #0f0; box-sizing: border-box; }
+        select { width: 100%; padding: 15px; margin: 10px 0; }
+        button { width: 100%; padding: 15px; margin: 10px 0; background: #0f0; color: #000; font-weight: bold; cursor: pointer; }
+        .bomb-section { border: 2px solid #333; padding: 15px; margin-bottom: 20px; border-radius: 8px; background: #222; }
+        .status-defused { color: #2ecc71; font-weight: bold; font-size: 20px; }
+        .status-exploded { color: #e74c3c; font-weight: bold; font-size: 20px; }
+        
+        /* වෙන වෙනම කොටු සඳහා Styling */
+        .boxes-container { display: flex; justify-content: center; gap: 8px; margin: 15px 0; flex-wrap: wrap; }
+        .code-box { width: 45px; height: 50px; text-align: center; font-size: 20px; font-weight: bold; border-radius: 5px; }
+
+        #dashboard { display: none; }
+        #waitingScreen { display: none; margin-top: 50px; font-size: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container" id="loginScreen">
+        <h2>📟 SELECT YOUR TEAM</h2>
+        <select id="teamSelect">
+            <option value="Team 1">Team 1</option>
+            <option value="Team 2">Team 2</option>
+            <option value="Team 3">Team 3</option>
+            <option value="Team 4">Team 4</option>
+            <option value="Team 5">Team 5</option>
+            <option value="Team 6">Team 6</option>
+            <option value="Team 7">Team 7</option>
+            <option value="Team 8">Team 8</option>
+            <option value="Team 9">Team 9</option>
+            <option value="Team 10">Team 10</option>
+        </select>
+        <button onclick="joinTeam()">ENTER TERMINAL</button>
+    </div>
+
+    <div class="container" id="waitingScreen">
+        <h2 style="color: #f1c40f;">⏳ WAITING FOR ADMIN...</h2>
+        <p>තරගය ආරම්භ කරනතුරු රැඳී සිටින්න.</p>
+    </div>
+
+    <div class="container" id="dashboard">
+        <h2 id="teamNameDisplay">TEAM TERMINAL</h2>
+        <h1 id="mobileTimer" style="color: #f1c40f; font-size: 40px;">20:00</h1>
+
+        <!-- Bomb 1 (කොටු 3යි) -->
+        <div class="bomb-section" id="section-bomb1">
+            <h3>💣 Bomb 1 (3 Errors)</h3>
+            <p id="status-bomb1" style="color: #f1c40f;">Status: ACTIVE</p>
+            <div id="input-area-bomb1">
+                <div class="boxes-container">
+                    <input type="number" class="code-box bomb1-box" placeholder="1">
+                    <input type="number" class="code-box bomb1-box" placeholder="2">
+                    <input type="number" class="code-box bomb1-box" placeholder="3">
+                </div>
+                <button onclick="defuse('bomb1')">DEFUSE BOMB 1</button>
+            </div>
+        </div>
+
+        <!-- Bomb 2 (කොටු 5යි) -->
+        <div class="bomb-section" id="section-bomb2">
+            <h3>💣 Bomb 2 (5 Errors)</h3>
+            <p id="status-bomb2" style="color: #f1c40f;">Status: ACTIVE</p>
+            <div id="input-area-bomb2">
+                <div class="boxes-container">
+                    <input type="number" class="code-box bomb2-box" placeholder="1">
+                    <input type="number" class="code-box bomb2-box" placeholder="2">
+                    <input type="number" class="code-box bomb2-box" placeholder="3">
+                    <input type="number" class="code-box bomb2-box" placeholder="4">
+                    <input type="number" class="code-box bomb2-box" placeholder="5">
+                </div>
+                <button onclick="defuse('bomb2')">DEFUSE BOMB 2</button>
+            </div>
+        </div>
+
+        <!-- Bomb 3 (කොටු 7යි) -->
+        <div class="bomb-section" id="section-bomb3">
+            <h3>💣 Bomb 3 (7 Errors)</h3>
+            <p id="status-bomb3" style="color: #f1c40f;">Status: ACTIVE</p>
+            <div id="input-area-bomb3">
+                <div class="boxes-container">
+                    <input type="number" class="code-box bomb3-box" placeholder="1">
+                    <input type="number" class="code-box bomb3-box" placeholder="2">
+                    <input type="number" class="code-box bomb3-box" placeholder="3">
+                    <input type="number" class="code-box bomb3-box" placeholder="4">
+                    <input type="number" class="code-box bomb3-box" placeholder="5">
+                    <input type="number" class="code-box bomb3-box" placeholder="6">
+                    <input type="number" class="code-box bomb3-box" placeholder="7">
+                </div>
+                <button onclick="defuse('bomb3')">DEFUSE BOMB 3</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let myTeam = "";
+        let currentGameState = 'waiting';
+
+        socket.on('gameState', (data) => {
+            currentGameState = data.state;
+            if(myTeam !== "") {
+                if (currentGameState === 'waiting') {
+                    document.getElementById('dashboard').style.display = 'none';
+                    document.getElementById('waitingScreen').style.display = 'block';
+                } else {
+                    document.getElementById('waitingScreen').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                }
+            }
+        });
+
+        socket.on('timerUpdate', (time) => {
+            let m = Math.floor(time / 60);
+            let s = time % 60;
+            document.getElementById('mobileTimer').innerText = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+        });
+
+        socket.on('updateState', (teams) => {
+            if(!myTeam) return;
+            const myTeamData = teams[myTeam];
+            
+            ['bomb1', 'bomb2', 'bomb3'].forEach(bomb => {
+                const bombData = myTeamData[bomb];
+                const statusText = document.getElementById('status-' + bomb);
+                const inputArea = document.getElementById('input-area-' + bomb);
+                
+                if (bombData.status === 'defused') {
+                    statusText.innerText = "🟢 DEFUSED!";
+                    statusText.className = "status-defused";
+                    inputArea.style.display = "none";
+                } else if (bombData.status === 'exploded') {
+                    statusText.innerText = "🔴 EXPLODED!";
+                    statusText.className = "status-exploded";
+                    inputArea.style.display = "none";
+                } else {
+                    statusText.innerText = '🟡 ACTIVE (Attempts left: ' + (3 - bombData.attempts) + ')';
+                    inputArea.style.display = "block";
+                }
+            });
+        });
+
+        function joinTeam() {
+            myTeam = document.getElementById('teamSelect').value;
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('teamNameDisplay').innerText = myTeam + " TERMINAL";
+            
+            if (currentGameState === 'waiting') {
+                document.getElementById('waitingScreen').style.display = 'block';
+            } else {
+                document.getElementById('dashboard').style.display = 'block';
+            }
+        }
+
+        function defuse(bombId) {
+            if (currentGameState !== 'playing') {
+                alert("ගේම් එක තවම පටන් ගෙන නැත!");
+                return;
+            }
+
+            const inputs = document.querySelectorAll('.' + bombId + '-box');
+            let values = [];
+            for (let input of inputs) {
+                if (input.value.trim() === "") {
+                    alert("කරුණාකර සියලුම කොටු පූරණය කරන්න!");
+                    return;
+                }
+                values.push(input.value.trim());
+            }
+
+            // වෙන වෙනම ගහපු numbers ටික 4-9-12 විදිහට එකතු කරලා සර්වර් එකට යවනවා
+            const code = values.join('-');
+            socket.emit('submitCode', { team: myTeam, bomb: bombId, code });
+            inputs.forEach(input => input.value = '');
+        }
+    </script>
+</body>
+</html>
